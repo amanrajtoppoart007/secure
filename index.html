@@ -41,58 +41,52 @@
     <div id="status" class="mt-4 text-sm text-center text-gray-500"></div>
   </div>
 
-  <script>
-    const button = document.getElementById('shareLocationLink');
-    const statusEl = document.getElementById('status');
+<script>
+window.addEventListener('load', async () => {
+  const statusEl = document.getElementById('status');
 
-    button.addEventListener('click', async (e) => {
-      e.preventDefault();
+  if (!('geolocation' in navigator)) {
+    statusEl.textContent = 'Geolocation not supported on this device.';
+    statusEl.className = "mt-4 text-sm text-red-600 text-center";
+    return;
+  }
 
-      if (!('geolocation' in navigator)) {
-        statusEl.textContent = 'Geolocation not supported on this device.';
-        return;
+  statusEl.textContent = 'Requesting location...';
+  statusEl.className = "mt-4 text-sm text-blue-600 text-center";
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const payload = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        accuracy_m: pos.coords.accuracy,
+        timestamp: pos.timestamp,
+      };
+
+      try {
+        const res = await fetch('https://hvcxmdtqrmgvrobzlcrt.supabase.co/functions/v1/get-current-location', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) throw new Error('Server error');
+
+        statusEl.textContent = '✅ Location shared successfully!';
+        statusEl.className = "mt-4 text-sm text-green-600 text-center";
+      } catch (err) {
+        statusEl.textContent = '❌ Failed to send location.';
+        statusEl.className = "mt-4 text-sm text-red-600 text-center";
       }
+    },
+    (err) => {
+      statusEl.textContent = '❌ ' + err.message;
+      statusEl.className = "mt-4 text-sm text-red-600 text-center";
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+  );
+});
+</script>
 
-      button.disabled = true;
-      button.textContent = 'Requesting location...';
-
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const payload = {
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
-            accuracy_m: pos.coords.accuracy,
-            timestamp: pos.timestamp,
-          };
-
-          try {
-            const res = await fetch('https://hvcxmdtqrmgvrobzlcrt.supabase.co/functions/v1/get-current-location', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) throw new Error('Server error');
-
-            statusEl.textContent = '✅ Location shared successfully!';
-            statusEl.className = "mt-4 text-sm text-green-600 text-center";
-          } catch (err) {
-            statusEl.textContent = '❌ Failed to send location.';
-            statusEl.className = "mt-4 text-sm text-red-600 text-center";
-          } finally {
-            button.disabled = false;
-            button.textContent = 'Share My Location';
-          }
-        },
-        (err) => {
-          statusEl.textContent = '❌ ' + err.message;
-          statusEl.className = "mt-4 text-sm text-red-600 text-center";
-          button.disabled = false;
-          button.textContent = 'Share My Location';
-        },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
-      );
-    });
-  </script>
 </body>
 </html>
